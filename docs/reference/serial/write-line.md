@@ -49,7 +49,7 @@ basic.forever(() => {
         basic.showArrow(ArrowNames.North)
         direction = "North"
     }
-    serial.writeLine(direction + " @ " + degrees + "degrees")
+    serial.writeLine(direction + " @ " + degrees + " degrees")
     basic.pause(500)
 })
 ```
