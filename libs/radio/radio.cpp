@@ -53,6 +53,7 @@ namespace radio {
     double dvalue;
     String msg; // may be NULL before first packet
     Buffer bufMsg; // may be NULL before first packet
+    Buffer rawPacket;
 
     int radioEnable() {
         int r = uBit.radio.enable();
@@ -159,73 +160,91 @@ namespace radio {
     }
 
     /**
+     * Returns the buffer payload from the last packet taken from the radio queue
+     * (via ``receiveNumber``, ``receiveString``, etc) or the empty string if that
+     * packet did not contain a string.
+     */
+    //% help=radio/received-packet
+    Buffer takePacket() {
+        if (radioEnable() != MICROBIT_OK) return mkBuffer(NULL, 0);
+        packet = uBit.radio.datagram.recv();
+        return mkBuffer(packet.getBytes(), 28);
+    }
+
+    /**
      * Takes a packet from the micro:bit radio queue.
      * @param writeToSerial if true, write the received packet to serial without updating the global packet;
                             if false, update the global packet instead
      */
     void receivePacket(bool writeToSerial) {
+
         PacketBuffer p = uBit.radio.datagram.recv();
 
         uint8_t* buf = p.getBytes();
-        uint8_t tp;
-        int t;
-        int s;
-        int iv = 0;
-        double dv = 0;
-        String m = NULL;
-        Buffer b = NULL;
+        // uint8_t tp;
+        // int t;
+        // int s;
+        // int iv = 0;
+        // double dv = 0;
+        // String m = NULL;
+        // Buffer b = NULL;
 
-        memcpy(&tp, buf, 1);
-        memcpy(&t, buf + 1, 4);
-        memcpy(&s, buf + 5, 4);
+        Buffer rp = mkBuffer(buf, 28);
+        // memcpy(&tp, buf, 1);
+        // memcpy(&t, buf + 1, 4);
+        // memcpy(&s, buf + 5, 4);
 
-        switch(tp) {
-            case PACKET_TYPE_STRING:
-                m = getStringValue(buf + PACKET_PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
-                break;
-            case PACKET_TYPE_BUFFER:
-                b = getBufferValue(buf + PACKET_PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
-                break;
-            case PACKET_TYPE_DOUBLE:
-            case PACKET_TYPE_DOUBLE_VALUE:
-                memcpy(&dv, buf + PACKET_PREFIX_LENGTH, sizeof(double));
-                if (tp == PACKET_TYPE_DOUBLE_VALUE) {
-                    m = getStringValue(buf + DOUBLE_VALUE_PACKET_NAME_LEN_OFFSET, MAX_FIELD_DOUBLE_NAME_LENGTH);
-                }
-                break;
-            case PACKET_TYPE_NUMBER:
-            case PACKET_TYPE_VALUE:
-                memcpy(&iv, buf + PACKET_PREFIX_LENGTH, sizeof(int));
-                if (tp == PACKET_TYPE_VALUE) {
-                    m = getStringValue(buf + VALUE_PACKET_NAME_LEN_OFFSET, MAX_FIELD_NAME_LENGTH);
-                }
-                break;
-            default: // unknown packet
-                return;
-        }
 
-        if (NULL == m)
-            m = mkString("", 0);
-        if (NULL == b)
-            b = mkBuffer(NULL, 0);
+        // switch(tp) {
+        //     case PACKET_TYPE_STRING:
+        //         m = getStringValue(buf + PACKET_PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
+        //         break;
+        //     case PACKET_TYPE_BUFFER:
+        //         b = getBufferValue(buf + PACKET_PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
+        //         break;
+        //     case PACKET_TYPE_DOUBLE:
+        //     case PACKET_TYPE_DOUBLE_VALUE:
+        //         memcpy(&dv, buf + PACKET_PREFIX_LENGTH, sizeof(double));
+        //         if (tp == PACKET_TYPE_DOUBLE_VALUE) {
+        //             m = getStringValue(buf + DOUBLE_VALUE_PACKET_NAME_LEN_OFFSET, MAX_FIELD_DOUBLE_NAME_LENGTH);
+        //         }
+        //         break;
+        //     case PACKET_TYPE_NUMBER:
+        //     case PACKET_TYPE_VALUE:
+        //         memcpy(&iv, buf + PACKET_PREFIX_LENGTH, sizeof(int));
+        //         if (tp == PACKET_TYPE_VALUE) {
+        //             m = getStringValue(buf + VALUE_PACKET_NAME_LEN_OFFSET, MAX_FIELD_NAME_LENGTH);
+        //         }
+        //         break;
+        //     default: // unknown packet
+        //         return;
+        // }
+
+        // if (NULL == m)
+        //     m = mkString("", 0);
+        // if (NULL == b)
+        //     b = mkBuffer(NULL, 0);
 
         if (!writeToSerial) {
             // Refresh global packet
-            packet = p;
-            type = tp;
-            time = t;
-            serial = s;
-            ivalue = iv;
-            dvalue = dv;
-            decrRC(msg);
-            decrRC(bufMsg);
-            msg = m;
-            bufMsg = b;
+            // packet = p;
+            // type = tp;
+            // time = t;
+            // serial = s;
+            // ivalue = iv;
+            // dvalue = dv;
+            // decrRC(msg);
+            // decrRC(bufMsg);
+            // decrRC(rawPacket);
+            // msg = m;
+            // bufMsg = b;
+            rawPacket = rp;
         }
         else {
-            writePacketAsJSON(tp, iv, dv, s, t, m, b);
-            decrRC(m);
-            decrRC(b);
+            // writePacketAsJSON(tp, iv, dv, s, t, m, b);
+            // decrRC(m);
+            // decrRC(b);
+            // decrRC(rp);
         }
     }
 
@@ -327,6 +346,19 @@ namespace radio {
         int bufLen = copyBufferValue(buf + PACKET_PREFIX_LENGTH, msg, MAX_PAYLOAD_LENGTH - 1);
 
         uBit.radio.datagram.send(buf, PACKET_PREFIX_LENGTH + bufLen);
+    }
+
+    /**
+     * Sends a raw packet
+     */
+    //% advanced=true
+    void sendRawPacket(Buffer msg) {
+        if (radioEnable() != MICROBIT_OK || NULL == msg) return;
+
+        uint8_t buf[msg->length];
+        memcpy(buf, msg->data, msg->length);
+
+        uBit.radio.datagram.send(buf, msg->length);
     }
 
 
@@ -507,6 +539,18 @@ namespace radio {
         if (radioEnable() != MICROBIT_OK || NULL == bufMsg) return mkBuffer(NULL, 0);
         incrRC(bufMsg);
         return bufMsg;
+    }
+
+    /**
+     * Returns the buffer payload from the last packet taken from the radio queue
+     * (via ``receiveNumber``, ``receiveString``, etc) or the empty string if that
+     * packet did not contain a string.
+     */
+    //% help=radio/received-packet
+    Buffer getRawPacket() {
+        if (radioEnable() != MICROBIT_OK || NULL == rawPacket) return mkBuffer(NULL, 0);
+        incrRC(rawPacket);
+        return rawPacket;
     }
 
     /**

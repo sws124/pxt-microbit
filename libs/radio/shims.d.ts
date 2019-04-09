@@ -8,12 +8,20 @@ declare namespace radio {
     /**
      * Sends an event over radio to neigboring devices
      */
-    //% blockId=radioRaiseEvent block="radio raise event|from source %src=control_event_source_id|with value %value=control_event_value_id" 
+    //% blockId=radioRaiseEvent block="radio raise event|from source %src=control_event_source_id|with value %value=control_event_value_id"
     //% blockExternalInputs=1
     //% advanced=true
     //% weight=1
     //% help=radio/raise-event shim=radio::raiseEvent
     function raiseEvent(src: int32, value: int32): void;
+
+    /**
+     * Returns the buffer payload from the last packet taken from the radio queue
+     * (via ``receiveNumber``, ``receiveString``, etc) or the empty string if that
+     * packet did not contain a string.
+     */
+    //% help=radio/received-packet shim=radio::takePacket
+    function takePacket(): Buffer;
 
     /**
      * Broadcasts a number over radio to any connected micro:bit in the group.
@@ -25,8 +33,9 @@ declare namespace radio {
 
     /**
      * Broadcasts a name / value pair along with the device serial number
-     * and running time to any connected micro:bit in the group.
-     * @param name the field name (max 12 characters), eg: "name"
+     * and running time to any connected micro:bit in the group. The name can
+     * include no more than 8 characters.
+     * @param name the field name (max 8 characters), eg: "name"
      * @param value the numeric value
      */
     //% help=radio/send-value
@@ -52,6 +61,12 @@ declare namespace radio {
     //% weight=57
     //% advanced=true shim=radio::sendBuffer
     function sendBuffer(msg: Buffer): void;
+
+    /**
+     * Sends a raw packet
+     */
+    //% advanced=true shim=radio::sendRawPacket
+    function sendRawPacket(msg: Buffer): void;
 
     /**
      * Reads the next packet from the radio queue and and writes it to serial
@@ -175,6 +190,14 @@ declare namespace radio {
      */
     //% help=radio/received-buffer shim=radio::receivedBuffer
     function receivedBuffer(): Buffer;
+
+    /**
+     * Returns the buffer payload from the last packet taken from the radio queue
+     * (via ``receiveNumber``, ``receiveString``, etc) or the empty string if that
+     * packet did not contain a string.
+     */
+    //% help=radio/received-packet shim=radio::getRawPacket
+    function getRawPacket(): Buffer;
 
     /**
      * Returns the system time of the sender micro:bit at the moment when it sent the
