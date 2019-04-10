@@ -9,7 +9,7 @@ basic.showIcon(IconNames.Heart)
 ## Parameters
 
 * ``icon``, the identifier of the icon to display
-* ``interval`` (optional), the time to display in milliseconds. default is 400.
+* ``interval`` (optional), the time to display in milliseconds. default is 600.
 
 ## Example
 
